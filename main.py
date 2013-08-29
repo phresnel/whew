@@ -4,14 +4,25 @@ import os
 import shutil
 import markdown
 import codecs
+import re
+
+
+class Article:
+    title = ""
+    html = ""
+    standalone_target_name = ""
 
 
 def print_help():
     print "no help yet"
     
+
+def strip_extension(filename):
+    return os.path.splitext(filename)[0]
+    
     
 def replace_extension(filename, new_extension):
-    return os.path.splitext(filename)[0] + new_extension
+    return strip_extension(filename) + new_extension
 
 
 def prolog(source_dir):
@@ -19,7 +30,7 @@ def prolog(source_dir):
     if os.path.isfile(filename):
         return read_utf8(filename)
     else:
-        return "<html><head></head>"
+        return '<html><head><meta http-equiv="Content-Type" content="text/html;charset=utf-8"></head>'
     
     
 def epilog(source_dir):
@@ -57,13 +68,38 @@ def is_special_filename(filename):
          or filename == "epilog")
 
 
-def compose(articles, source_dir, target_name):
-    html = ""
-    for a in articles:
-        html += u"<article>{0}</article>\n".format(a)
-    html = prolog(source_dir) + html + epilog(source_dir)
-    write_utf8(target_name, html)
+def filename_to_title(f):
+    return re.sub(ur"(\w)([A-Z])", ur"\1 \2", strip_extension(f))
 
+
+def compose(articles, source_dir, target_name):
+    body = ""
+    index = ""
+    for a in articles:
+        index += u'<li><a href="#{0}">{0}</a></li>'.format(a.title)
+        body += (u'<article>' +
+                 u'<a name="{0}" href="{2}"><h1>{0}</h1></a>' +
+                 u'{1}' +
+                 u'<a href="#index">top</a>'
+                 u'</article>' +
+                 u'\n'
+                ).format(a.title, a.html, os.path.basename(a.standalone_target_name))
+
+    index = u'<a name="index"></a><ul>{0}</ul>'.format(index)
+    html = prolog(source_dir)
+    html += u'<h1><a href="{1}">{0}</a></h1>'.format(
+                    filename_to_title(os.path.basename(source_dir)),
+                    os.path.dirname(target_name))
+    if len(articles) > 1:
+        html += index
+    html += body
+    html += epilog(source_dir)
+    write_utf8(target_name, html)
+    
+    # Also create standalone articles
+    if len(articles) > 1:
+        for a in articles:
+            compose([a,], source_dir, a.standalone_target_name)
 
 
 def build_recursively(source_dir, target_dir):
@@ -87,7 +123,11 @@ def build_recursively(source_dir, target_dir):
             build_recursively(source_name, target_name)
         elif os.path.isfile(source_name):
             if source_name.endswith(".md"):
-                articles.append(compile_markdown (source_name))
+                article = Article()
+                article.html = compile_markdown(source_name)
+                article.title = filename_to_title(f)
+                article.standalone_target_name = replace_extension(target_name, ".html")
+                articles.append(article)
             elif shall_copy(source_name):
                 try:
                     shutil.copyfile(source_name, target_name)
