@@ -3,7 +3,10 @@ whew
 
 whew is a CMS for people who think that CMSes suck. Needs python and one or two python packages, and converts your collection of markdown files (with codehilite plugin) into a static webpage.
 
-Because encoding sucks, too, source files must be UTF-8, target files will be UTF-8.
+Because encoding sucks, too, source files must be UTF-8, target files will be UTF-8. No discussion.
+
+Btw, whew is ideal if you want to convert all your (stackoverflow)[http://stackoverflow.com]-posts into a 
+self-praising website, which is actually the reason why I wrote this.
 
 
 Basic Usage
